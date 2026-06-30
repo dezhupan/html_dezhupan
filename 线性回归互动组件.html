@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>线性回归互动组件 · 标准公式版</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card: rgba(255,255,255,.88);
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --line: rgba(0,0,0,.12);
+      --accent: #0066cc;
+      --red: #d70015;
+      --green: #15803d;
+      --amber: #b45309;
+      --soft-blue: rgba(0,102,204,.08);
+      --soft-red: rgba(215,0,21,.08);
+      --soft-green: rgba(21,128,61,.08);
+      --shadow: 0 18px 45px rgba(0,0,0,.09);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: radial-gradient(circle at top, #fff 0, var(--bg) 42%, #ececf0 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      line-height: 1.65;
+    }
+    header, main, footer {
+      width: min(1120px, calc(100% - 36px));
+      margin-inline: auto;
+    }
+    header { padding: 46px 0 18px; }
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(34px, 5vw, 56px);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+    .subtitle { margin: 0; max-width: 860px; color: var(--muted); font-size: 18px; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.06);
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    main { display: grid; gap: 20px; padding-bottom: 50px; }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.9);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 24px;
+      backdrop-filter: blur(18px);
+    }
+    h2 { margin: 0 0 10px; font-size: 25px; letter-spacing: -0.02em; }
+    h3 { margin: 18px 0 8px; font-size: 18px; }
+    p { margin: 8px 0; }
+    .muted { color: var(--muted); font-size: 14px; }
+    .tip {
+      padding: 13px 15px;
+      border-radius: 16px;
+      background: rgba(0,0,0,.045);
+      color: #333;
+      margin: 12px 0;
+    }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    @media (max-width: 850px) { .grid, .grid-3 { grid-template-columns: 1fr; } }
+    label { display: block; font-weight: 700; margin: 11px 0 6px; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    input[type="number"], input[type="text"], textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.93);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 16px;
+      outline: none;
+    }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background: rgba(0,0,0,.06);
+      border-radius: 8px;
+      padding: 2px 6px;
+    }
+    button {
+      border: 0;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 999px;
+      padding: 11px 17px;
+      font-weight: 800;
+      cursor: pointer;
+      margin: 10px 8px 0 0;
+      box-shadow: 0 8px 18px rgba(0,102,204,.18);
+    }
+    button.secondary { background: rgba(0,0,0,.12); color: var(--text); box-shadow: none; }
+    button.danger { background: var(--red); box-shadow: 0 8px 18px rgba(215,0,21,.16); }
+    button:active { transform: translateY(1px); }
+    .result {
+      margin-top: 14px;
+      padding: 15px 16px;
+      border-radius: 17px;
+      background: var(--soft-blue);
+      border: 1px solid rgba(0,102,204,.16);
+      font-weight: 700;
+    }
+    .formula-box {
+      display: grid;
+      gap: 8px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      margin: 12px 0;
+    }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 2px; }
+    .tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; background: rgba(0,0,0,.06); font-size: 13px; color: #333; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #000; display: inline-block; }
+    .dot.blue { background: var(--accent); }
+    .dot.red { background: var(--red); }
+    .dot.green { background: var(--green); }
+    .dot.black { background: #111; }
+    canvas, svg {
+      width: 100%;
+      max-width: 100%;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+    }
+    canvas { height: 360px; }
+
+    #fitCanvas { height: 430px; }
+
+    .calc-steps {
+      margin-top: 12px;
+      padding: 16px 18px;
+      border-radius: 17px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      font-weight: 600;
+    }
+    .calc-steps h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+    }
+    .calc-steps .step-line {
+      margin: 8px 0;
+      line-height: 1.8;
+    }
+    .calc-steps code {
+      white-space: normal;
+      word-break: break-word;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 9px 6px; text-align: left; vertical-align: top; }
+    th { font-size: 14px; color: #333; }
+    .mini-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0; }
+    @media (max-width: 850px) { .mini-cards { grid-template-columns: 1fr; } }
+    .mini {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: rgba(255,255,255,.7);
+    }
+    .mini strong { display: block; font-size: 17px; margin-bottom: 4px; }
+    .quiz-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+    .quiz-item { padding: 16px 0; border-top: 1px solid var(--line); }
+    .quiz-item:first-child { border-top: 0; }
+    .option { display: block; padding: 6px 0; font-weight: 500; margin: 0; }
+    .feedback { margin-top: 7px; font-weight: 800; }
+    .good { color: var(--green); }
+    .bad { color: var(--red); }
+    .warn { color: var(--amber); }
+    details {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.64);
+    }
+    summary { cursor: pointer; font-weight: 800; }
+    footer { color: var(--muted); font-size: 13px; padding: 0 0 36px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="pill">线性回归 · 标准 b 版</div>
+    <h1>把线性回归、损失函数和梯度下降做成可操作练习</h1>
+    <p class="subtitle">这个版本重点修正了 b/c 混淆、坐标轴误解、中文标注、梯度下降图示、指标解释和随机自测题。所有交互都在本地浏览器运行，不需要联网。</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>1. 线性回归拟合线：标准公式 ŷ = wx + b</h2>
+      <p class="muted">本组件只使用标准公式：<code>ŷ = wx + b</code>。其中 <code>w</code> 或 <code>k</code> 表示斜率，<code>b</code> 表示截距/偏置，也就是 <code>x=0</code> 时预测线和数学 y 轴的交点。</p>
+      <div class="tip"><strong>重点：</strong>身高数据的 x 大约在 <code>150~190</code>。如果只看局部区间，单独拖动 <code>w</code> 时，红线会同时改变高度和倾斜程度。为了让初学者看清楚“w 控制斜率”，这里默认开启“拖动 w 时固定当前预测点”，也就是拖动 w 时自动换算 <code>b</code>，让红线围绕黑点旋转。</div>
+      <div class="grid-3">
+        <div class="mini">
+          <strong>标准公式</strong>
+          <span class="muted"><code>ŷ = wx + b</code>，本组件只用这个公式。</span>
+        </div>
+        <div class="mini">
+          <strong>w / k</strong>
+          <span class="muted">斜率。x 每增加 1，ŷ 大约变化 w。</span>
+        </div>
+        <div class="mini">
+          <strong>b</strong>
+          <span class="muted">真实截距。x=0 时，ŷ=b。</span>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div>
+          <label>权重 w / 斜率：<span id="fitWVal">0.90</span></label>
+          <input id="fitW" type="range" min="-0.2" max="1.8" step="0.01" value="0.90" />
+          <p class="muted">w 越大，红线越陡；w 越小，红线越平。</p>
+        </div>
+        <div>
+          <label>截距 b / 偏置：<span id="fitBVal">-88</span></label>
+          <input id="fitB" type="range" min="-180" max="40" step="1" value="-88" />
+          <p class="muted">b 是标准公式里的真实截距。拖动 b，整条线会上下移动。</p>
+        </div>
+        <div>
+          <label>预测身高 x：<span id="fitXVal">176</span> cm</label>
+          <input id="fitX" type="range" min="150" max="190" step="1" value="176" />
+          <p class="muted">黑点表示当前输入 x 的预测结果。</p>
+        </div>
+      </div>
+
+      <label class="option" style="margin-top:10px;">
+        <input id="lockPoint" type="checkbox" checked>
+        拖动 w 时固定黑点，让红线围绕当前预测点旋转
+      </label>
+      <p class="muted">关闭后，w 和 b 完全独立调整；开启后，拖动 w 会自动换算 b，但公式仍然是 <code>ŷ = wx + b</code>。</p>
+
+      <div class="legend">
+        <span class="tag"><span class="dot blue"></span>真实样本</span>
+        <span class="tag"><span class="dot red"></span>预测线</span>
+        <span class="tag"><span class="dot" style="background:#f59e0b"></span>误差</span>
+        <span class="tag"><span class="dot black"></span>当前预测点</span>
+        <span class="tag"><span class="dot green"></span>斜率示意</span>
+      </div>
+
+      <canvas id="fitCanvas" width="980" height="430"></canvas>
+      <div class="result" id="fitResult"></div>
+      <details>
+        <summary>为什么 b 常常是负数？</summary>
+        <p>因为 <code>b</code> 是 <code>x=0</code> 时的预测值，而身高数据集中在 <code>150~190cm</code> 附近。比如 <code>ŷ = 0.9x - 88</code>，当 <code>x=176</code> 时预测约 <code>70.4kg</code>，但当 <code>x=0</code> 时就是 <code>-88</code>。这只是直线向左延长后的数学截距，不表示真实的 0cm 人体重。</p>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>2. MAE / MSE / RMSE 自动计算器</h2>
+      <div class="mini-cards">
+        <div class="mini"><strong>MAE：平均绝对误差</strong><span class="muted">先取绝对值再平均。人话：平均错多少。</span></div>
+        <div class="mini"><strong>MSE：均方误差</strong><span class="muted">先平方再平均。人话：大错误会被重罚。</span></div>
+        <div class="mini"><strong>RMSE：均方根误差</strong><span class="muted">MSE 开平方。人话：回到原单位，更好解释。</span></div>
+      </div>
+      <div class="grid">
+        <div>
+          <label>真实值 y_true</label>
+          <input id="trueVals" type="text" value="11,21,27,47" />
+        </div>
+        <div>
+          <label>预测值 y_pred</label>
+          <input id="predVals" type="text" value="17,22,34,46" />
+        </div>
+      </div>
+      <button onclick="calcMetrics()">计算指标</button>
+      <button class="secondary" onclick="fillMetricExample()">换一组例子</button>
+      <div class="result" id="metricResult"></div>
+      <div class="calc-steps" id="metricSteps"></div>
+      <table id="metricTable"></table>
+      <details>
+        <summary>三个指标怎么选？</summary>
+        <p><strong>MAE</strong> 最好解释，适合说“平均差多少”。<strong>MSE</strong> 对大误差更敏感，适合重点惩罚离谱预测。<strong>RMSE</strong> 也惩罚大误差，但单位和原目标值一致，比 MSE 更容易读。</p>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>3. 导数：看当前点的变化趋势</h2>
+      <p class="muted">函数：<code>y = x²</code>，导数：<code>y' = 2x</code>。红线是当前位置的切线，切线斜率就是这一点的导数。</p>
+      <div class="grid">
+        <div>
+          <label>x：<span id="xVal">2</span></label>
+          <input id="xSlider" type="range" min="-9" max="9" step="0.1" value="2" />
+        </div>
+        <div class="formula-box">
+          <span><strong>导数 &gt; 0：</strong>往右走函数值上升，上坡。</span>
+          <span><strong>导数 &lt; 0：</strong>往右走函数值下降，下坡。</span>
+          <span><strong>导数 = 0：</strong>切线水平，可能到山底或山顶。</span>
+        </div>
+      </div>
+      <div class="result" id="derivativeResult"></div>
+      <canvas id="derivativeCanvas" width="980" height="360"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>4. 梯度下降：沿着“负梯度”一步一步下山</h2>
+      <p class="muted">简化损失函数：<code>J(w) = (w - 3)²</code>。这里的 <code>w</code> 是模型要学习的<strong>权重参数</strong>，可以先理解成直线公式 <code>ŷ = wx + b</code> 里的斜率/权重。为了演示梯度下降，本组件先只优化一个参数 <code>w</code>。</p>
+      <div class="tip"><strong>先记一句：</strong><code>w</code> 是模型参数；<code>J(w)</code> 是这个参数带来的损失；梯度表示损失上升最快的方向。我们要让损失下降，所以参数更新要减去梯度：<code>w新 = w旧 - 学习率 × 梯度</code>。</div>
+      <div class="grid-3">
+        <div>
+          <label>初始 w：<span id="startWVal">9.00</span></label>
+          <input id="startW" type="range" min="-5" max="10" step="0.1" value="9" />
+        </div>
+        <div>
+          <label>学习率 α：<span id="lrVal">0.15</span></label>
+          <input id="lr" type="range" min="0.01" max="1.15" step="0.01" value="0.15" />
+        </div>
+        <div>
+          <label>迭代次数：<span id="stepsVal">20</span></label>
+          <input id="steps" type="range" min="1" max="50" step="1" value="20" />
+        </div>
+      </div>
+      <button onclick="runGD()">重新计算路径</button>
+      <button class="secondary" onclick="gdStep()">单步下降</button>
+      <button class="secondary" onclick="gdAuto()">自动演示</button>
+      <button class="danger" onclick="gdStop()">停止</button>
+      <div class="formula-box">
+        <span><strong>w 是什么：</strong><code>w</code> 是模型权重参数。在线性回归 <code>ŷ = wx + b</code> 中，<code>w</code> 决定特征 x 对预测值的影响力度。</span>
+        <span><strong>损失：</strong><code>J(w) = (w - 3)²</code>，表示当前 w 错得多严重；越接近 0 越好。</span>
+        <span><strong>梯度：</strong><code>grad = J'(w) = 2(w - 3)</code>，表示当前点损失上升最快的方向。</span>
+        <span><strong>更新：</strong><code>w_new = w_old - α × grad</code>，减号表示沿“负梯度方向”下山。</span>
+      </div>
+      <div class="result" id="gdResult"></div>
+      <canvas id="gdCanvas" width="980" height="380"></canvas>
+      <table id="gdTable"></table>
+      <details>
+        <summary>为什么原来的图初学者看不懂？</summary>
+        <p>只画一条曲线和一条红线太抽象。初学者需要同时看到：当前位置、山底、梯度方向、负梯度方向、学习率控制步长、每一步更新后的损失变化。这个版本把这些信息全部标在图上。</p>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>5. 标准化和数据泄露判断</h2>
+      <p class="muted">标准化公式：<code>z = (x - mean) / std</code>。机器学习里，训练集可以 <code>fit_transform</code>，测试集只能 <code>transform</code>。</p>
+      <div class="grid-3">
+        <div>
+          <label>原始值 x</label>
+          <input id="zX" type="number" step="0.1" value="80" />
+        </div>
+        <div>
+          <label>训练集均值 mean</label>
+          <input id="zMean" type="number" step="0.1" value="50" />
+        </div>
+        <div>
+          <label>训练集标准差 std</label>
+          <input id="zStd" type="number" step="0.1" value="10" />
+        </div>
+      </div>
+      <button onclick="calcZ()">计算标准化结果</button>
+      <div class="result" id="zResult"></div>
+      <details open>
+        <summary>为什么测试集不能 fit_transform？</summary>
+        <p>测试集相当于考试题。<code>fit</code> 会学习均值和标准差，如果对测试集也 <code>fit_transform</code>，就等于提前看了考试题的统计信息，评估结果会不真实，这叫数据泄露。</p>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>6. 随机自测题：可刷新、可变题</h2>
+      <p class="muted">点击“刷新题目”，题型和数字都会随机变化。适合反复刷题，不是固定死题。</p>
+      <div class="quiz-toolbar">
+        <button onclick="newQuiz()">刷新题目</button>
+        <button onclick="gradeQuiz()">提交判分</button>
+        <button class="secondary" onclick="clearQuizAnswers()">清空答案</button>
+        <span class="tag">当前题号批次：<span id="quizBatch">1</span></span>
+      </div>
+      <div id="quiz"></div>
+      <div class="result" id="quizResult">先点击“刷新题目”生成本轮自测。</div>
+    </section>
+  </main>
+
+  <footer>建议使用方式：先看第 1、2、4 个组件，再刷第 6 部分随机题。刷新题目会重新生成新数字和新选项。</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return 'NaN';
+  return x.toFixed(4).replace(/\.0000$/, '').replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+};
+const rnd = (min,max,step=1) => Math.round((min + Math.random()*(max-min))/step)*step;
+const shuffle = arr => arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]);
+function parseList(s){ return s.split(',').map(v=>Number(v.trim())).filter(v=>Number.isFinite(v)); }
+function drawText(ctx, text, x, y, color='#333', size=15, align='left') {
+  ctx.save(); ctx.fillStyle=color; ctx.font=`${size}px -apple-system, BlinkMacSystemFont, Segoe UI, Microsoft YaHei`; ctx.textAlign=align; ctx.fillText(text,x,y); ctx.restore();
+}
+function line(ctx,x1,y1,x2,y2,color='#ddd',width=1,dash=[]) { ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore(); }
+function circle(ctx,x,y,r,color){ ctx.save(); ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+function arrow(ctx,x1,y1,x2,y2,color='#111',width=2){
+  line(ctx,x1,y1,x2,y2,color,width);
+  const a=Math.atan2(y2-y1,x2-x1), h=10;
+  ctx.save(); ctx.fillStyle=color; ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-h*Math.cos(a-Math.PI/6), y2-h*Math.sin(a-Math.PI/6)); ctx.lineTo(x2-h*Math.cos(a+Math.PI/6), y2-h*Math.sin(a+Math.PI/6)); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+// 1. fitting line
+const fitData = [
+  {x:160,y:56.3},{x:166,y:60.6},{x:172,y:65.1},{x:174,y:68.5},{x:180,y:75}
+];
+
+let fitState = { w: 0.90, b: -88, inputX: 176, lastW: 0.90 };
+
+function clamp(n, min, max) {
+  return Math.min(max, Math.max(min, n));
+}
+
+function syncFitControls() {
+  $('fitW').value = String(fitState.w);
+  $('fitB').value = String(fitState.b);
+  $('fitX').value = String(fitState.inputX);
+  $('fitWVal').textContent = fmt(fitState.w);
+  $('fitBVal').textContent = fmt(fitState.b);
+  $('fitXVal').textContent = fitState.inputX;
+}
+
+function updateFit(source){
+  const oldW = fitState.w;
+  const oldB = fitState.b;
+  const oldX = fitState.inputX;
+
+  let newW = Number($('fitW').value);
+  let newB = Number($('fitB').value);
+  let newX = Number($('fitX').value);
+
+  if (source === 'w' && $('lockPoint') && $('lockPoint').checked) {
+    const anchorY = oldW * oldX + oldB;
+    newB = anchorY - newW * oldX;
+    newB = clamp(newB, Number($('fitB').min), Number($('fitB').max));
+  }
+
+  fitState = { w: newW, b: newB, inputX: newX, lastW: oldW };
+  syncFitControls();
+
+  const pred = fitState.w * fitState.inputX + fitState.b;
+  const errors = fitData.map(p => fitState.w * p.x + fitState.b - p.y);
+  const mae = errors.reduce((s,e)=>s+Math.abs(e),0)/errors.length;
+  const mse = errors.reduce((s,e)=>s+e*e,0)/errors.length;
+
+  $('fitResult').innerHTML =
+    `当前预测：<code>ŷ = ${fmt(fitState.w)} × ${fitState.inputX} + (${fmt(fitState.b)}) = ${fmt(pred)}</code> kg。<br>` +
+    `标准公式：<code>ŷ = ${fmt(fitState.w)}x + (${fmt(fitState.b)})</code>。` +
+    `<code>b=${fmt(fitState.b)}</code> 是真正的 y 轴截距。<br>` +
+    `当前样本整体误差：MAE（平均绝对误差）=${fmt(mae)}，MSE（均方误差）=${fmt(mse)}。`;
+
+  drawFit(fitState.w, fitState.b, fitState.inputX, pred);
+}
+
+function drawFit(w,b,inputX,pred){
+  const c=$('fitCanvas'), ctx=c.getContext('2d'), W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+
+  const xMin=145,xMax=195,yMin=35,yMax=95;
+  const left=60,right=45,top=48,bottom=50;
+  const sx=x=>left+(x-xMin)/(xMax-xMin)*(W-left-right);
+  const sy=y=>H-bottom-(y-yMin)/(yMax-yMin)*(H-top-bottom);
+
+  // chart background
+  ctx.save();
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0,0,W,H);
+  ctx.restore();
+
+  // grid
+  for(let y=40;y<=90;y+=10){
+    line(ctx,left,sy(y),W-right,sy(y),'#ececec',1);
+    drawText(ctx,String(y),left-12,sy(y)+4,'#8a8a8a',13,'right');
+  }
+  for(let x=150;x<=190;x+=10){
+    line(ctx,sx(x),top,sx(x),H-bottom,'#f1f1f1',1);
+    line(ctx,sx(x),H-bottom,sx(x),H-bottom+7,'#bdbdbd',1);
+    drawText(ctx,String(x),sx(x),H-20,'#8a8a8a',13,'center');
+  }
+
+  // visible axes
+  line(ctx,left,H-bottom,W-right,H-bottom,'#d7d7d7',1.2);
+  line(ctx,left,top,left,H-bottom,'#d7d7d7',1.2);
+  drawText(ctx,'身高 x',W-95,H-18,'#666',14);
+  drawText(ctx,'体重 y',left+8,top-17,'#666',14);
+
+  // prediction line
+  const x1=xMin,x2=xMax,y1=w*x1+b,y2=w*x2+b;
+  line(ctx,sx(x1),sy(y1),sx(x2),sy(y2),'#d70015',3.2);
+
+  // slope helper triangle: choose a quiet position and label with background
+  const triX1=151, triX2=161;
+  const triY1=w*triX1+b, triY2=w*triX2+b;
+  const triBaseY = sy(triY1);
+  line(ctx,sx(triX1),triBaseY,sx(triX2),triBaseY,'#15803d',2,[5,4]);
+  line(ctx,sx(triX2),triBaseY,sx(triX2),sy(triY2),'#15803d',2,[5,4]);
+  labelBox(ctx,'横向 +10cm',sx((triX1+triX2)/2)-45,triBaseY+12,'#15803d');
+  labelBox(ctx,`纵向 ${fmt(10*w)}kg`,sx(triX2)+8,(triBaseY+sy(triY2))/2-12,'#15803d');
+
+  // samples and error lines
+  fitData.forEach(p=>{
+    const yp=w*p.x+b;
+    line(ctx,sx(p.x),sy(p.y),sx(p.x),sy(yp),'#f59e0b',2,[5,4]);
+    circle(ctx,sx(p.x),sy(p.y),6,'#0066cc');
+  });
+
+  // current prediction point
+  line(ctx,sx(inputX),H-bottom,sx(inputX),sy(pred),'#b7b7b7',1.5,[4,4]);
+  circle(ctx,sx(inputX),sy(pred),7,'#111');
+  labelBox(ctx,`x=${inputX}，ŷ=${fmt(pred)}`,sx(inputX)+12,sy(pred)-30,'#111');
+
+  // separated labels
+  labelBox(ctx,'红线：ŷ = wx + b',W-245,top+10,'#d70015');
+  labelBox(ctx,`w=${fmt(w)}：斜率`,W-245,top+42,'#15803d');
+  labelBox(ctx,`b=${fmt(b)}：x=0 时的截距`,left+12,top+10,'#475569');
+  labelBox(ctx,'当前只显示 145~195cm，真正 y 轴 x=0 不在图中',left+12,top+42,'#475569');
+}
+
+function labelBox(ctx, text, x, y, color='#333') {
+  ctx.save();
+  ctx.font = `14px -apple-system, BlinkMacSystemFont, Segoe UI, Microsoft YaHei`;
+  const width = ctx.measureText(text).width + 14;
+  ctx.fillStyle = 'rgba(255,255,255,.88)';
+  ctx.strokeStyle = 'rgba(0,0,0,.08)';
+  roundRect(ctx, x, y, width, 24, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.fillText(text, x+7, y+17);
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.arcTo(x+w, y, x+w, y+h, rr);
+  ctx.arcTo(x+w, y+h, x, y+h, rr);
+  ctx.arcTo(x, y+h, x, y, rr);
+  ctx.arcTo(x, y, x+w, y, rr);
+  ctx.closePath();
+}
+
+$('fitW').addEventListener('input',()=>updateFit('w'));
+$('fitB').addEventListener('input',()=>updateFit('b'));
+$('fitX').addEventListener('input',()=>updateFit('x'));
+$('lockPoint').addEventListener('change',()=>updateFit('lock'));
+
+// 2. metrics
+function fillMetricExample(){
+  const base = rnd(5,30,1);
+  const ys = Array.from({length:4},(_,i)=>base+i*rnd(5,12,1));
+  const ps = ys.map(v=>v+rnd(-6,8,1));
+  $('trueVals').value = ys.join(','); $('predVals').value = ps.join(','); calcMetrics();
+}
+function calcMetrics(){
+  const yTrue=parseList($('trueVals').value), yPred=parseList($('predVals').value);
+  if(!yTrue.length || yTrue.length!==yPred.length){
+    $('metricResult').textContent='真实值和预测值数量必须一致，并且都要是数字。';
+    if($('metricSteps')) $('metricSteps').innerHTML='';
+    $('metricTable').innerHTML='';
+    return;
+  }
+
+  const n = yTrue.length;
+  const errors=yTrue.map((v,i)=>yPred[i]-v);
+  const abs=errors.map(Math.abs);
+  const sq=errors.map(e=>e*e);
+
+  const absSum=abs.reduce((a,b)=>a+b,0);
+  const sqSum=sq.reduce((a,b)=>a+b,0);
+  const mae=absSum/n;
+  const mse=sqSum/n;
+  const rmse=Math.sqrt(mse);
+
+  $('metricResult').innerHTML =
+    `<strong>MAE（平均绝对误差）=${fmt(mae)}</strong>：平均错多少。<br>` +
+    `<strong>MSE（均方误差）=${fmt(mse)}</strong>：大错误会被平方放大。<br>` +
+    `<strong>RMSE（均方根误差）=${fmt(rmse)}</strong>：MSE 开平方，回到原单位。`;
+
+  const errorProcess = errors.map((e,i)=>`${yPred[i]}-${yTrue[i]}=${fmt(e)}`).join('，');
+  const absProcess = abs.map(v=>fmt(v)).join(' + ');
+  const sqProcess = errors.map(e=>`(${fmt(e)})²`).join(' + ');
+  const sqValues = sq.map(v=>fmt(v)).join(' + ');
+
+  if($('metricSteps')){
+    $('metricSteps').innerHTML = `
+      <h3>计算过程</h3>
+      <div class="step-line"><strong>1）先算每个样本的误差：</strong><br><code>误差 = 预测值 - 真实值 = ${errorProcess}</code></div>
+      <div class="step-line"><strong>2）MAE：平均绝对误差</strong><br><code>MAE = (|${errors.map(e=>fmt(e)).join('| + |')}|) / ${n} = (${absProcess}) / ${n} = ${fmt(absSum)} / ${n} = ${fmt(mae)}</code></div>
+      <div class="step-line"><strong>3）MSE：均方误差</strong><br><code>MSE = (${sqProcess}) / ${n} = (${sqValues}) / ${n} = ${fmt(sqSum)} / ${n} = ${fmt(mse)}</code></div>
+      <div class="step-line"><strong>4）RMSE：均方根误差</strong><br><code>RMSE = √MSE = √${fmt(mse)} = ${fmt(rmse)}</code></div>
+    `;
+  }
+
+  let html='<tr><th>样本</th><th>真实值</th><th>预测值</th><th>误差 = 预测 - 真实</th><th>|误差|</th><th>误差²</th></tr>';
+  errors.forEach((e,i)=> html += `<tr><td>${i+1}</td><td>${yTrue[i]}</td><td>${yPred[i]}</td><td>${fmt(e)}</td><td>${fmt(abs[i])}</td><td>${fmt(sq[i])}</td></tr>`);
+  $('metricTable').innerHTML=html;
+}
+['trueVals','predVals'].forEach(id=>$(id).addEventListener('input',calcMetrics));
+
+// 3. derivative
+function drawDerivative(){
+  const x=Number($('xSlider').value), d=2*x, y=x*x;
+  $('xVal').textContent=fmt(x);
+  const trend = Math.abs(d)<1e-9 ? '导数 = 0：切线水平，当前在 y=x² 的最低点。' : d>0 ? '导数 > 0：往右走会升高，当前是上坡。' : '导数 < 0：往右走会降低，当前是下坡。';
+  $('derivativeResult').innerHTML = `当前位置：x=${fmt(x)}，y=x²=${fmt(y)}，导数 y'=2x=${fmt(d)}。${trend}`;
+  const c=$('derivativeCanvas'), ctx=c.getContext('2d'), W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+  const sx=v=>W/2+v*43, sy=v=>H-42-v*2.9;
+  line(ctx,30,sy(0),W-30,sy(0),'#e5e5e5'); line(ctx,sx(0),30,sx(0),H-42,'#e5e5e5');
+  drawText(ctx,'x',W-40,sy(0)-8,'#666',14); drawText(ctx,'y',sx(0)+8,42,'#666',14);
+  ctx.save(); ctx.strokeStyle='#0066cc'; ctx.lineWidth=3; ctx.beginPath();
+  for(let i=-9;i<=9;i+=0.04){ const px=sx(i), py=sy(i*i); if(i<=-8.96) ctx.moveTo(px,py); else ctx.lineTo(px,py); }
+  ctx.stroke(); ctx.restore();
+  // tangent
+  const len=2.6, tx1=x-len, ty1=y-d*len, tx2=x+len, ty2=y+d*len;
+  line(ctx,sx(tx1),sy(ty1),sx(tx2),sy(ty2),'#d70015',3);
+  circle(ctx,sx(x),sy(y),7,'#111');
+  drawText(ctx,'蓝线：函数 y=x²',70,48,'#0066cc',15);
+  drawText(ctx,'红线：当前点切线',70,72,'#d70015',15);
+  drawText(ctx,`斜率/导数 = ${fmt(d)}`,sx(x)+12,sy(y)-12,'#111',15);
+}
+$('xSlider').addEventListener('input',drawDerivative);
+
+// 4. GD
+let gdCurrent = null, gdPath = [], gdTimer = null;
+function gdLoss(w){ return (w-3)**2; }
+function gdGrad(w){ return 2*(w-3); }
+function updateGdLabels(){ $('startWVal').textContent=fmt(Number($('startW').value)); $('lrVal').textContent=fmt(Number($('lr').value)); $('stepsVal').textContent=$('steps').value; }
+function computePath(count){
+  let w=Number($('startW').value), lr=Number($('lr').value); const path=[];
+  for(let i=0;i<=count;i++){ path.push({i,w,loss:gdLoss(w),grad:gdGrad(w)}); w = w - lr*gdGrad(w); }
+  return path;
+}
+function runGD(){ gdStop(); updateGdLabels(); gdPath=computePath(Number($('steps').value)); gdCurrent=gdPath[gdPath.length-1].w; drawGD(gdPath); renderGdText(gdPath); }
+function gdStep(){
+  gdStop(); updateGdLabels(); const lr=Number($('lr').value);
+  if(gdPath.length===0){ const w=Number($('startW').value); gdPath=[{i:0,w,loss:gdLoss(w),grad:gdGrad(w)}]; }
+  const last=gdPath[gdPath.length-1]; const nw=last.w-lr*last.grad; gdPath.push({i:gdPath.length,w:nw,loss:gdLoss(nw),grad:gdGrad(nw)}); gdCurrent=nw;
+  drawGD(gdPath); renderGdText(gdPath);
+}
+function gdAuto(){ gdStop(); gdPath=[]; const max=Number($('steps').value); gdStep(); gdTimer=setInterval(()=>{ if(gdPath.length>max){ gdStop(); return; } gdStep(); }, 420); }
+function gdStop(){ if(gdTimer){ clearInterval(gdTimer); gdTimer=null; } }
+function renderGdText(path){
+  const p=path[path.length-1], lr=Number($('lr').value);
+  let state = p.loss < .001 ? '<span class="good">已经非常接近山底。</span>' : lr>.9 ? '<span class="warn">学习率偏大，可能震荡或发散。</span>' : lr<.05 ? '<span class="warn">学习率偏小，下降会比较慢。</span>' : '<span class="good">学习率相对平稳。</span>';
+  $('gdResult').innerHTML = `当前第 ${p.i} 步：w=${fmt(p.w)}。w 是正在被模型调整的权重参数；损失 J(w)=${fmt(p.loss)}；梯度 grad=${fmt(p.grad)}。${state}`;
+  let rows='<tr><th>步数</th><th>w</th><th>损失 J(w)</th><th>梯度 grad</th><th>下一步公式</th></tr>';
+  path.slice(-6).forEach(p=>{ rows += `<tr><td>${p.i}</td><td>${fmt(p.w)}</td><td>${fmt(p.loss)}</td><td>${fmt(p.grad)}</td><td>w_new = ${fmt(p.w)} - ${fmt(lr)} × ${fmt(p.grad)}</td></tr>`; });
+  $('gdTable').innerHTML=rows;
+}
+function drawGD(path){
+  const c=$('gdCanvas'), ctx=c.getContext('2d'), W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+  const xMin=-6,xMax=11,yMax=90;
+  const sx=x=>55+(x-xMin)/(xMax-xMin)*(W-105), sy=y=>H-45-Math.min(y,yMax)/yMax*(H-95);
+  line(ctx,45,sy(0),W-45,sy(0),'#e5e5e5'); line(ctx,sx(0),30,sx(0),H-45,'#e5e5e5');
+  for(let x=-5;x<=10;x+=1){ if(x%2===0){ line(ctx,sx(x),H-45,sx(x),H-38,'#bbb'); drawText(ctx,String(x),sx(x),H-20,'#777',12,'center'); } }
+  drawText(ctx,'参数 w',W-105,H-16,'#666',14); drawText(ctx,'损失 J(w)',16,38,'#666',14);
+  // curve
+  ctx.save(); ctx.strokeStyle='#0066cc'; ctx.lineWidth=3; ctx.beginPath();
+  for(let x=xMin;x<=xMax;x+=0.04){ const px=sx(x), py=sy(gdLoss(x)); if(x===xMin) ctx.moveTo(px,py); else ctx.lineTo(px,py); }
+  ctx.stroke(); ctx.restore();
+  // bottom
+  line(ctx,sx(3),30,sx(3),H-45,'#15803d',2,[6,5]); circle(ctx,sx(3),sy(0),6,'#15803d'); drawText(ctx,'山底：最优 w=3，损失最小',sx(3)+10,sy(0)-12,'#15803d',15);
+  drawText(ctx,'蓝线：损失函数 J(w)=(w-3)²，越低表示损失越小',70,48,'#0066cc',15);
+  drawText(ctx,'红线：每一步更新后的 w 位置，目标是靠近山底',70,72,'#d70015',15);
+  if(path.length){
+    // path line
+    ctx.save(); ctx.strokeStyle='#d70015'; ctx.lineWidth=2.5; ctx.beginPath();
+    path.forEach((p,i)=>{ const px=sx(p.w), py=sy(p.loss); if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); }); ctx.stroke(); ctx.restore();
+    path.forEach((p,i)=> circle(ctx,sx(p.w),sy(p.loss),i===path.length-1?7:4,i===path.length-1?'#111':'#d70015'));
+    const cur=path[path.length-1], px=sx(cur.w), py=sy(cur.loss), grad=cur.grad;
+    drawText(ctx,`当前位置 w=${fmt(cur.w)}`,px+12,py-16,'#111',15);
+    // tangent around current
+    const tangentLen=1.4, y0=cur.loss;
+    line(ctx,sx(cur.w-tangentLen),sy(y0-grad*tangentLen),sx(cur.w+tangentLen),sy(y0+grad*tangentLen),'#f59e0b',2,[5,4]);
+    drawText(ctx,'橙色虚线：当前位置斜率/梯度',W-345,48,'#b45309',15);
+    // gradient direction along horizontal: if grad positive, increasing w is uphill, negative gradient goes left; if grad negative, negative gradient goes right
+    const dir = grad>0 ? -1 : grad<0 ? 1 : 0;
+    if(dir!==0){ arrow(ctx,px,py+28,px+dir*70,py+28,'#15803d',3); drawText(ctx,'负梯度方向：往这里下山',px+dir*78,py+33,'#15803d',14,dir>0?'left':'right'); }
+  }
+}
+['startW','lr','steps'].forEach(id=>$(id).addEventListener('input',()=>{ updateGdLabels(); runGD(); }));
+
+// 5 z-score
+function calcZ(){
+  const x=Number($('zX').value), mean=Number($('zMean').value), std=Number($('zStd').value);
+  if(!Number.isFinite(x)||!Number.isFinite(mean)||!Number.isFinite(std)||std===0){ $('zResult').textContent='请输入有效数字，并且 std 不能为 0。'; return; }
+  const z=(x-mean)/std;
+  $('zResult').innerHTML=`z = (${fmt(x)} - ${fmt(mean)}) / ${fmt(std)} = <code>${fmt(z)}</code>。含义：这个值距离训练集均值 ${fmt(Math.abs(z))} 个标准差，方向是${z>=0?'高于':'低于'}均值。`;
+}
+['zX','zMean','zStd'].forEach(id=>$(id).addEventListener('input',calcZ));
+
+// 6 random quiz
+let quiz = [], batch = 0;
+function makeMCQ(q, correct, wrongs, explain){
+  // wrongs 既支持数组，也支持多个字符串参数。
+  // 修复点：不能对字符串使用 ... 展开，否则“测试集...”会被拆成“测、试、集...”这些单字选项。
+  let wrongList;
+  if (Array.isArray(wrongs)) {
+    wrongList = wrongs;
+  } else {
+    wrongList = Array.prototype.slice.call(arguments, 2, -1);
+    explain = arguments[arguments.length - 1];
+  }
+  const correctText = String(correct).trim();
+  const unique = [];
+  const seen = new Set();
+  function add(v){
+    const key = String(v).trim();
+    if(key && !seen.has(key)){ seen.add(key); unique.push(key); }
+  }
+  add(correctText);
+  wrongList.forEach(add);
+
+  // 数字题容易因为 0、正负号等原因出现重复选项，这里自动补充相近数字。
+  const correctNum = Number(correctText);
+  if(Number.isFinite(correctNum)){
+    [correctNum+1, correctNum-1, correctNum+2, correctNum-2, -correctNum, correctNum*2, correctNum/2, 0].forEach(v => add(fmt(v)));
+  }
+
+  // 概念题正常不会走到这里；保底也给完整中文选项，不再出现单字选项。
+  ['概念混淆选项', '计算方向相反', '和题目无关', '以上说法都不准确'].forEach(add);
+
+  const opts = shuffle(unique.slice(0,4));
+  return {q, opts, a: opts.indexOf(correctText), explain};
+}
+function conceptQuestion(){
+  const bank = [
+    makeMCQ('线性回归主要解决哪类问题？','预测连续数值','预测类别','给图片打标签','只做聚类','回归问题回答“结果是多少”，比如房价、体重、销量。'),
+    makeMCQ('coef_ 在 LinearRegression 中通常表示什么？','权重系数 w','偏置 b','损失函数 J','学习率 α','coef_ 是模型学到的权重，intercept_ 是偏置。'),
+    makeMCQ('intercept_ 表示什么？','偏置 b','权重 w','训练轮数','测试集比例','intercept_ 是偏置，控制预测线整体上移或下移。'),
+    makeMCQ('测试集标准化应该怎么做？','使用训练集 fit 得到的规则 transform 测试集','对测试集重新 fit_transform','删除测试集','先预测再标准化','测试集不能参与 fit，否则会造成数据泄露。'),
+    makeMCQ('梯度下降公式里的学习率 α 控制什么？','每次参数更新走多远','样本总数','特征数量','测试集大小','学习率就是步长。太大可能震荡，太小训练慢。'),
+    makeMCQ('L1 正则化更容易产生什么效果？','让部分权重变成 0','让所有权重完全一样','让测试集变大','让损失函数消失','L1 常用于特征选择，因为它可能把部分无效特征权重压成 0。'),
+    makeMCQ('L2 正则化更像是在做什么？','让权重整体变小','强制所有权重变成 0','把回归变成分类','取消损失函数','L2 通常让权重变小但不一定为 0，让模型更平滑。'),
+    makeMCQ('欠拟合通常表现为？','训练集差，测试集也差','训练集好，测试集差','训练集差，测试集特别好','只在测试集没有标签','欠拟合是模型太简单，主要规律都没学好。'),
+    makeMCQ('过拟合通常表现为？','训练集很好，测试集变差','训练集和测试集都很差','训练集完全不能预测','没有训练误差','过拟合是把训练集噪声也记住了，泛化能力差。')
+  ];
+  return bank[Math.floor(Math.random()*bank.length)];
+}
+function derivativeQuestion(){
+  const x = rnd(-6,6,1); const ans = 2*x;
+  return makeMCQ(`函数 y=x²，当 x=${x} 时，导数 y'=2x 等于多少？`, String(ans), [String(ans+2), String(-ans), String(x*x)], `y=x² 的导数是 y'=2x，代入 x=${x}，得到 ${ans}。`);
+}
+function zQuestion(){
+  const mean=rnd(20,80,5), std=rnd(5,20,5), z=rnd(-3,3,1), x=mean+z*std;
+  return makeMCQ(`标准化 z=(x-mean)/std。如果 x=${x}，mean=${mean}，std=${std}，z 等于多少？`, fmt(z), [fmt(z+1), fmt(-z), fmt((x-mean)/(std*2))], `z=(${x}-${mean})/${std}=${fmt(z)}。`);
+}
+function gdQuestion(){
+  const w=rnd(-2,8,1), lr=[0.1,0.2,0.3,0.5][Math.floor(Math.random()*4)], grad=2*(w-3), nw=w-lr*grad;
+  return makeMCQ(`梯度下降：J(w)=(w-3)²，当前 w=${w}，学习率 α=${lr}。下一步 w_new 是多少？`, fmt(nw), [fmt(w+lr*grad), fmt(w-lr*(w-3)), fmt(grad)], `grad=2(w-3)=2×(${w}-3)=${fmt(grad)}，w_new=w-α×grad=${w}-${lr}×${fmt(grad)}=${fmt(nw)}。`);
+}
+function metricQuestion(){
+  const e1=rnd(-5,5,1)||2, e2=rnd(-5,5,1)||-3, e3=rnd(-5,5,1)||4;
+  const errors=[e1,e2,e3]; const mae=errors.reduce((s,e)=>s+Math.abs(e),0)/3; const mse=errors.reduce((s,e)=>s+e*e,0)/3;
+  if(Math.random()<.5){
+    return makeMCQ(`三个样本的误差分别是 ${errors.join('、')}，MAE（平均绝对误差）是多少？`, fmt(mae), [fmt(mse), fmt(Math.sqrt(mse)), fmt(errors.reduce((a,b)=>a+b,0)/3)], `MAE=平均 |误差| = (${errors.map(e=>Math.abs(e)).join('+')})/3=${fmt(mae)}。`);
+  }
+  return makeMCQ(`三个样本的误差分别是 ${errors.join('、')}，MSE（均方误差）是多少？`, fmt(mse), [fmt(mae), fmt(Math.sqrt(mse)), fmt(errors.reduce((a,b)=>a+b,0)/3)], `MSE=平均 误差² = (${errors.map(e=>e*e).join('+')})/3=${fmt(mse)}。`);
+}
+function formulaQuestion(){
+  const x=rnd(150,190,5), w=[0.7,0.8,0.9,1.0][Math.floor(Math.random()*4)], b=rnd(-110,-70,5); const y=w*x+b;
+  return makeMCQ(`线性回归预测：ŷ=w×x+b。若 x=${x}，w=${w}，b=${b}，ŷ 等于多少？`, fmt(y), [fmt(w+b*x), fmt(w*x-b), fmt(x+b)], `ŷ=${w}×${x}+(${b})=${fmt(y)}。`);
+}
+function newQuiz(){
+  batch += 1; $('quizBatch').textContent=batch;
+  const makers=[conceptQuestion,conceptQuestion,derivativeQuestion,zQuestion,gdQuestion,metricQuestion,formulaQuestion,conceptQuestion];
+  quiz = shuffle(makers).slice(0,6).map(fn=>fn());
+  renderQuiz(); $('quizResult').textContent='本轮题目已刷新。做完后点击“提交判分”。';
+}
+function renderQuiz(){
+  $('quiz').innerHTML = quiz.map((it,i)=>`<div class="quiz-item"><strong>${i+1}. ${it.q}</strong>${it.opts.map((op,j)=>`<label class="option"><input type="radio" name="q${i}" value="${j}"> ${op}</label>`).join('')}<div class="feedback" id="fb${i}"></div></div>`).join('');
+}
+function gradeQuiz(){
+  if(!quiz.length){ newQuiz(); return; }
+  let score=0;
+  quiz.forEach((it,i)=>{
+    const checked=document.querySelector(`input[name="q${i}"]:checked`), fb=$(`fb${i}`);
+    if(!checked){ fb.innerHTML='未作答。'; fb.className='feedback warn'; return; }
+    if(Number(checked.value)===it.a){ score++; fb.innerHTML=`正确。${it.explain}`; fb.className='feedback good'; }
+    else { fb.innerHTML=`错误。正确答案：${it.opts[it.a]}。${it.explain}`; fb.className='feedback bad'; }
+  });
+  $('quizResult').innerHTML = `本轮得分：<strong>${score} / ${quiz.length}</strong>。想继续练，点击“刷新题目”。`;
+}
+function clearQuizAnswers(){ document.querySelectorAll('#quiz input[type="radio"]').forEach(i=>i.checked=false); document.querySelectorAll('#quiz .feedback').forEach(f=>{f.textContent=''; f.className='feedback';}); $('quizResult').textContent='已清空答案。'; }
+
+// init
+syncFitControls(); updateFit('init'); calcMetrics(); drawDerivative(); runGD(); calcZ(); newQuiz();
+</script>
+</body>
+</html>
