@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Z-score 标准化交互演示</title>
+  <meta name="description" content="通过滑块调整 x、μ、σ，动态理解标准化公式 z = (x - μ) / σ、累计概率 Φ(z)、均值与标准差。" />
+
+  <meta property="og:title" content="Z-score 标准化交互演示" />
+  <meta property="og:description" content="拖动滑块，理解标准化、均值、标准差、Z-score 与累计概率 Φ(z)。" />
+  <meta property="og:type" content="website" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      padding: 32px 20px;
+    }
+
+    .card {
+      max-width: 1180px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 28px 30px;
+      box-shadow: 0 14px 42px rgba(0, 0, 0, 0.10);
+    }
+
+    .title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: #6e6e73;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .formula {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: #f2f6ff;
+      color: #0b4eb3;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.95fr 1.2fr;
+      gap: 34px;
+      align-items: center;
+      margin-top: 18px;
+    }
+
+    .panel {
+      min-width: 0;
+    }
+
+    .result {
+      background: #eef3ff;
+      border: 1px solid #dce6ff;
+      padding: 16px;
+      border-radius: 14px;
+      line-height: 1.9;
+      font-size: 16px;
+    }
+
+    .result strong {
+      color: #0b4eb3;
+    }
+
+    .hint {
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: #fff8e8;
+      border: 1px solid #f4dfad;
+      border-radius: 12px;
+      color: #5c4300;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .controls {
+      margin-top: 20px;
+    }
+
+    .control {
+      display: grid;
+      grid-template-columns: 86px minmax(180px, 1fr) 64px;
+      gap: 12px;
+      align-items: center;
+      margin: 16px 0;
+    }
+
+    label {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #2f80ed;
+    }
+
+    .value-pill {
+      text-align: right;
+      color: #424245;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chart-wrap {
+      background: #fbfbfd;
+      border: 1px solid #d7d7dc;
+      border-radius: 16px;
+      padding: 14px;
+      min-width: 0;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: #ffffff;
+      border-radius: 12px;
+    }
+
+    .note-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .note {
+      background: #f8f8fa;
+      border: 1px solid #e8e8ed;
+      border-radius: 14px;
+      padding: 14px 16px;
+      line-height: 1.75;
+      color: #424245;
+      font-size: 14px;
+    }
+
+    .note-title {
+      font-weight: 700;
+      color: #1d1d1f;
+      margin-bottom: 6px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      margin-top: 10px;
+      color: #555;
+      font-size: 13px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .legend-line,
+    .legend-box {
+      display: inline-block;
+      width: 20px;
+      height: 3px;
+      border-radius: 99px;
+      background: #999;
+    }
+
+    .legend-red {
+      background: #ff4d4f;
+    }
+
+    .legend-blue {
+      background: #2f80ed;
+    }
+
+    .legend-gray {
+      background: repeating-linear-gradient(
+        90deg,
+        #999,
+        #999 5px,
+        transparent 5px,
+        transparent 9px
+      );
+      border: 1px solid #aaa;
+      height: 2px;
+    }
+
+    .legend-box {
+      height: 12px;
+      background: rgba(47, 128, 237, 0.18);
+      border: 1px solid rgba(47, 128, 237, 0.35);
+    }
+
+    @media (max-width: 850px) {
+      body {
+        padding: 18px 12px;
+      }
+
+      .card {
+        padding: 22px 18px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .note-grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .formula {
+        font-size: 22px;
+      }
+
+      .control {
+        grid-template-columns: 78px 1fr 54px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="card">
+    <div class="title-row">
+      <div>
+        <h1>Z-score 标准化交互演示</h1>
+        <div class="subtitle">
+          拖动 x、μ、σ，观察标准化结果 z、累计概率 Φ(z) 和正态曲线位置的变化。
+        </div>
+        <div class="formula">z = (x - μ) / σ</div>
+      </div>
+    </div>
+
+    <section class="layout">
+      <div class="panel">
+        <div class="result">
+          <div>原始值 x：<span id="xText">0.3</span></div>
+          <div>均值 μ：<span id="muText">0.0</span></div>
+          <div>标准差 σ：<span id="sigmaText">1.0</span></div>
+          <div>标准化结果 z：<strong id="zText">0.30</strong></div>
+          <div>累计概率 Φ(z)：<strong id="cdfText">61.8%</strong></div>
+          <div>中文含义：<strong id="meaningText">当前 x 比均值高 0.30 个标准差</strong></div>
+        </div>
+
+        <div class="hint">
+          蓝色阴影表示从曲线最左侧到当前 x 的面积，也就是小于等于当前 z 值的数据比例 Φ(z)。
+        </div>
+
+        <div class="controls">
+          <div class="control">
+            <label for="xSlider">x 原始值</label>
+            <input id="xSlider" type="range" min="-3" max="3" step="0.1" value="0.3">
+            <span class="value-pill" id="xValue">0.3</span>
+          </div>
+
+          <div class="control">
+            <label for="muSlider">μ 均值</label>
+            <input id="muSlider" type="range" min="-2" max="2" step="0.1" value="0">
+            <span class="value-pill" id="muValue">0.0</span>
+          </div>
+
+          <div class="control">
+            <label for="sigmaSlider">σ 标准差</label>
+            <input id="sigmaSlider" type="range" min="0.2" max="3" step="0.1" value="1">
+            <span class="value-pill" id="sigmaValue">1.0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-wrap">
+          <svg id="chart" viewBox="0 0 560 340" role="img" aria-label="Z-score 标准化正态分布示意图"></svg>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-line legend-blue"></span>正态分布曲线</span>
+          <span class="legend-item"><span class="legend-line legend-gray"></span>灰线 = 均值 μ</span>
+          <span class="legend-item"><span class="legend-line legend-red"></span>红线 = 当前 x</span>
+          <span class="legend-item"><span class="legend-box"></span>蓝色阴影 = Φ(z)</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="note-grid">
+      <div class="note">
+        <div class="note-title">中文解释</div>
+        z 表示当前值 x 距离平均值 μ 有几个标准差。<br>
+        z = 0：正好等于平均水平。<br>
+        z = 1：比平均值高 1 个标准差。<br>
+        z = -1：比平均值低 1 个标准差。
+      </div>
+
+      <div class="note">
+        <div class="note-title">重要提醒</div>
+        标准化会让数据变成“均值约为 0、标准差约为 1”。<br>
+        但标准化不等于一定变成标准正态分布。只有原始数据本身接近正态分布时，标准化后才接近标准正态分布。
+      </div>
+
+      <div class="note">
+        <div class="note-title">正态分布参考规律</div>
+        如果数据近似服从标准正态分布：<br>
+        约 68% 的数据落在 [-1, 1]。<br>
+        约 95% 的数据落在 [-2, 2]。<br>
+        约 99.7% 的数据落在 [-3, 3]。
+      </div>
+
+      <div class="note">
+        <div class="note-title">机器学习里的作用</div>
+        标准化不是让模型理解“平方米、公里、元”等单位，而是让不同特征的数值尺度更接近，减少大数字对模型训练的干扰。
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // 获取页面元素
+    const xSlider = document.getElementById("xSlider");
+    const muSlider = document.getElementById("muSlider");
+    const sigmaSlider = document.getElementById("sigmaSlider");
+
+    const xText = document.getElementById("xText");
+    const muText = document.getElementById("muText");
+    const sigmaText = document.getElementById("sigmaText");
+    const zText = document.getElementById("zText");
+    const cdfText = document.getElementById("cdfText");
+    const meaningText = document.getElementById("meaningText");
+
+    const xValue = document.getElementById("xValue");
+    const muValue = document.getElementById("muValue");
+    const sigmaValue = document.getElementById("sigmaValue");
+
+    const chart = document.getElementById("chart");
+
+    const SVG_NS = "http://www.w3.org/2000/svg";
+
+    // 正态分布概率密度函数，用来画钟形曲线
+    function normalPDF(x, mu, sigma) {
+      return (1 / (sigma * Math.sqrt(2 * Math.PI))) *
+        Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+    }
+
+    // 误差函数 erf 的近似实现，用来计算标准正态分布的累计概率
+    function erf(x) {
+      const sign = x >= 0 ? 1 : -1;
+      x = Math.abs(x);
+
+      const a1 = 0.254829592;
+      const a2 = -0.284496736;
+      const a3 = 1.421413741;
+      const a4 = -1.453152027;
+      const a5 = 1.061405429;
+      const p = 0.3275911;
+
+      const t = 1 / (1 + p * x);
+      const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) *
+        t * Math.exp(-x * x);
+
+      return sign * y;
+    }
+
+    // 标准正态分布累计概率 Φ(z)
+    function normalCDF(z) {
+      return 0.5 * (1 + erf(z / Math.sqrt(2)));
+    }
+
+    function createSvgElement(tagName, attributes = {}) {
+      const el = document.createElementNS(SVG_NS, tagName);
+      Object.entries(attributes).forEach(([key, value]) => {
+        el.setAttribute(key, value);
+      });
+      return el;
+    }
+
+    function formatMeaning(z) {
+      const absZ = Math.abs(z).toFixed(2);
+
+      if (Math.abs(z) < 0.005) {
+        return "当前 x 基本等于均值，处在平均水平";
+      }
+
+      if (z > 0) {
+        return `当前 x 比均值高 ${absZ} 个标准差`;
+      }
+
+      return `当前 x 比均值低 ${absZ} 个标准差`;
+    }
+
+    // 更新公式结果和图形
+    function update() {
+      const x = parseFloat(xSlider.value);
+      const mu = parseFloat(muSlider.value);
+      const sigma = parseFloat(sigmaSlider.value);
+
+      const z = (x - mu) / sigma;
+      const cdf = normalCDF(z);
+
+      xText.textContent = x.toFixed(1);
+      muText.textContent = mu.toFixed(1);
+      sigmaText.textContent = sigma.toFixed(1);
+      zText.textContent = z.toFixed(2);
+      cdfText.textContent = `${(cdf * 100).toFixed(1)}%`;
+      meaningText.textContent = formatMeaning(z);
+
+      xValue.textContent = x.toFixed(1);
+      muValue.textContent = mu.toFixed(1);
+      sigmaValue.textContent = sigma.toFixed(1);
+
+      drawChart(x, mu, sigma);
+    }
+
+    // 绘制正态分布曲线、阴影、均值线和当前 x 线
+    function drawChart(xValue, mu, sigma) {
+      chart.innerHTML = "";
+
+      const width = 560;
+      const height = 340;
+      const paddingLeft = 54;
+      const paddingRight = 28;
+      const paddingTop = 42;
+      const paddingBottom = 54;
+
+      // 根据 μ 和 σ 动态设置显示范围，保证曲线和当前 x 都能看见
+      const xMin = Math.min(mu - 4 * sigma, xValue - sigma, -4);
+      const xMax = Math.max(mu + 4 * sigma, xValue + sigma, 4);
+
+      const baselineY = height - paddingBottom;
+      const chartHeight = height - paddingTop - paddingBottom;
+      const maxDensity = normalPDF(mu, mu, sigma);
+
+      function mapX(x) {
+        return paddingLeft + ((x - xMin) / (xMax - xMin)) * (width - paddingLeft - paddingRight);
+      }
+
+      function mapY(y) {
+        return baselineY - (y / maxDensity) * chartHeight * 0.82;
+      }
+
+      // 背景网格线
+      [-3, -2, -1, 0, 1, 2, 3].forEach((offset) => {
+        const tickX = mu + offset * sigma;
+        if (tickX < xMin || tickX > xMax) return;
+
+        const x = mapX(tickX);
+        const gridLine = createSvgElement("line", {
+          x1: x,
+          x2: x,
+          y1: paddingTop,
+          y2: baselineY,
+          stroke: offset === 0 ? "#c7c7cc" : "#eeeeee",
+          "stroke-width": offset === 0 ? "1" : "0.8"
+        });
+        chart.appendChild(gridLine);
+      });
+
+      // 生成阴影路径：从最左侧到当前 xValue 的曲线下面积
+      const clampedXValue = Math.max(xMin, Math.min(xValue, xMax));
+      let areaPath = `M ${mapX(xMin)} ${baselineY}`;
+
+      const areaSteps = 260;
+      for (let i = 0; i <= areaSteps; i++) {
+        const currentX = xMin + (i / areaSteps) * (clampedXValue - xMin);
+        const currentY = normalPDF(currentX, mu, sigma);
+        areaPath += ` L ${mapX(currentX)} ${mapY(currentY)}`;
+      }
+
+      areaPath += ` L ${mapX(clampedXValue)} ${baselineY} Z`;
+
+      const area = createSvgElement("path", {
+        d: areaPath,
+        fill: "rgba(47, 128, 237, 0.18)",
+        stroke: "none"
+      });
+      chart.appendChild(area);
+
+      // 生成完整曲线路径
+      let curvePath = "";
+      const curveSteps = 420;
+      for (let i = 0; i <= curveSteps; i++) {
+        const currentX = xMin + (i / curveSteps) * (xMax - xMin);
+        const currentY = normalPDF(currentX, mu, sigma);
+        const px = mapX(currentX);
+        const py = mapY(currentY);
+
+        curvePath += i === 0 ? `M ${px} ${py}` : ` L ${px} ${py}`;
+      }
+
+      const curve = createSvgElement("path", {
+        d: curvePath,
+        fill: "none",
+        stroke: "#2f80ed",
+        "stroke-width": "3",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      });
+      chart.appendChild(curve);
+
+      // 均值线 μ
+      const muLine = createSvgElement("line", {
+        x1: mapX(mu),
+        x2: mapX(mu),
+        y1: paddingTop,
+        y2: baselineY,
+        stroke: "#8e8e93",
+        "stroke-width": "1.5",
+        "stroke-dasharray": "6,6"
+      });
+      chart.appendChild(muLine);
+
+      // 当前 x 线
+      const xLine = createSvgElement("line", {
+        x1: mapX(xValue),
+        x2: mapX(xValue),
+        y1: paddingTop,
+        y2: baselineY,
+        stroke: "#ff4d4f",
+        "stroke-width": "2.2"
+      });
+      chart.appendChild(xLine);
+
+      // x 轴
+      const axis = createSvgElement("line", {
+        x1: paddingLeft,
+        x2: width - paddingRight,
+        y1: baselineY,
+        y2: baselineY,
+        stroke: "#333333",
+        "stroke-width": "1.2"
+      });
+      chart.appendChild(axis);
+
+      // 标注 μ - σ、μ、μ + σ
+      const ticks = [
+        { label: "μ - σ", value: mu - sigma },
+        { label: "μ", value: mu },
+        { label: "μ + σ", value: mu + sigma }
+      ];
+
+      ticks.forEach((tick) => {
+        if (tick.value < xMin || tick.value > xMax) return;
+
+        const x = mapX(tick.value);
+        const tickLine = createSvgElement("line", {
+          x1: x,
+          x2: x,
+          y1: baselineY,
+          y2: baselineY + 7,
+          stroke: "#333333",
+          "stroke-width": "1"
+        });
+        chart.appendChild(tickLine);
+
+        const tickText = createSvgElement("text", {
+          x,
+          y: baselineY + 25,
+          "font-size": "13",
+          "text-anchor": "middle",
+          fill: "#555555"
+        });
+        tickText.textContent = tick.label;
+        chart.appendChild(tickText);
+      });
+
+      // 图内说明
+      const titleText = createSvgElement("text", {
+        x: paddingLeft,
+        y: 24,
+        "font-size": "14",
+        fill: "#333333"
+      });
+      titleText.textContent = "蓝色阴影 = Φ(z)，表示小于等于当前 z 的数据比例";
+      chart.appendChild(titleText);
+
+      const zLabel = createSvgElement("text", {
+        x: mapX(xValue),
+        y: paddingTop - 12,
+        "font-size": "13",
+        "text-anchor": "middle",
+        fill: "#ff4d4f",
+        "font-weight": "700"
+      });
+      zLabel.textContent = "当前 x";
+      chart.appendChild(zLabel);
+
+      const muLabel = createSvgElement("text", {
+        x: mapX(mu),
+        y: baselineY + 42,
+        "font-size": "13",
+        "text-anchor": "middle",
+        fill: "#666666",
+        "font-weight": "700"
+      });
+      muLabel.textContent = "均值 μ";
+      chart.appendChild(muLabel);
+    }
+
+    xSlider.addEventListener("input", update);
+    muSlider.addEventListener("input", update);
+    sigmaSlider.addEventListener("input", update);
+
+    update();
+  </script>
+</body>
+</html>
