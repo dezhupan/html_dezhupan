@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Z-score 标准化交互演示</title>
+
+  <style>
+    /* 页面整体样式 */
+    body {
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      background: #f5f5f5;
+      padding: 30px;
+    }
+
+    /* 外层卡片 */
+    .card {
+      max-width: 900px;
+      margin: auto;
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      display: flex;
+      gap: 30px;
+    }
+
+    /* 左侧控制区 */
+    .left {
+      width: 45%;
+    }
+
+    /* 右侧图形区 */
+    .right {
+      width: 55%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .formula {
+      font-size: 26px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+
+    .result {
+      background: #f0f4ff;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 16px 0;
+      line-height: 1.8;
+    }
+
+    .control {
+      margin: 18px 0;
+    }
+
+    label {
+      display: inline-block;
+      width: 70px;
+      font-weight: bold;
+    }
+
+    input[type="range"] {
+      width: 220px;
+    }
+
+    .note {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.8;
+      margin-top: 16px;
+    }
+
+    svg {
+      background: #fafafa;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <!-- 左侧：公式与滑块 -->
+  <div class="left">
+    <h2>标准化 Z-score 演示</h2>
+
+    <!-- 标准化公式 -->
+    <div class="formula">
+      z = (x - μ) / σ
+    </div>
+
+    <!-- 计算结果显示 -->
+    <div class="result">
+      <div>原始值 x：<span id="xText">0.3</span></div>
+      <div>均值 μ：<span id="muText">0</span></div>
+      <div>标准差 σ：<span id="sigmaText">1</span></div>
+      <div>标准化结果 z：<strong id="zText">0.3</strong></div>
+    </div>
+
+    <!-- x 滑块 -->
+    <div class="control">
+      <label>x 原始值</label>
+      <input id="xSlider" type="range" min="-3" max="3" step="0.1" value="0.3">
+    </div>
+
+    <!-- μ 滑块 -->
+    <div class="control">
+      <label>μ 均值</label>
+      <input id="muSlider" type="range" min="-2" max="2" step="0.1" value="0">
+    </div>
+
+    <!-- σ 滑块 -->
+    <div class="control">
+      <label>σ 标准差</label>
+      <input id="sigmaSlider" type="range" min="0.2" max="3" step="0.1" value="1">
+    </div>
+
+    <div class="note">
+      中文解释：<br>
+      z 表示当前值 x 距离平均值 μ 有几个标准差。<br>
+      z = 0 表示正好在平均水平。<br>
+      z = 1 表示比平均值高 1 个标准差。<br>
+      z = -1 表示比平均值低 1 个标准差。
+    </div>
+  </div>
+
+  <!-- 右侧：正态分布曲线 -->
+  <div class="right">
+    <svg id="chart" width="420" height="260"></svg>
+  </div>
+</div>
+
+<script>
+  // 获取页面元素
+  const xSlider = document.getElementById("xSlider");
+  const muSlider = document.getElementById("muSlider");
+  const sigmaSlider = document.getElementById("sigmaSlider");
+
+  const xText = document.getElementById("xText");
+  const muText = document.getElementById("muText");
+  const sigmaText = document.getElementById("sigmaText");
+  const zText = document.getElementById("zText");
+
+  const chart = document.getElementById("chart");
+
+  // 正态分布函数，用来画钟形曲线
+  function normalPDF(x, mu, sigma) {
+    return (1 / (sigma * Math.sqrt(2 * Math.PI))) *
+      Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+  }
+
+  // 更新公式结果和图形
+  function update() {
+    // 读取滑块值
+    const x = parseFloat(xSlider.value);
+    const mu = parseFloat(muSlider.value);
+    const sigma = parseFloat(sigmaSlider.value);
+
+    // 计算标准化结果
+    const z = (x - mu) / sigma;
+
+    // 更新文字
+    xText.textContent = x.toFixed(1);
+    muText.textContent = mu.toFixed(1);
+    sigmaText.textContent = sigma.toFixed(1);
+    zText.textContent = z.toFixed(2);
+
+    // 重新绘图
+    drawChart(x, mu, sigma);
+  }
+
+  // 绘制正态分布曲线
+  function drawChart(xValue, mu, sigma) {
+    chart.innerHTML = "";
+
+    const width = 420;
+    const height = 260;
+    const padding = 40;
+
+    const xMin = -5;
+    const xMax = 5;
+
+    // 坐标映射：数学 x -> SVG x
+    function mapX(x) {
+      return padding + ((x - xMin) / (xMax - xMin)) * (width - 2 * padding);
+    }
+
+    // 坐标映射：概率密度 y -> SVG y
+    function mapY(y) {
+      return height - padding - y * 260;
+    }
+
+    // 生成曲线路径
+    let path = "";
+    for (let i = 0; i <= 300; i++) {
+      const x = xMin + (i / 300) * (xMax - xMin);
+      const y = normalPDF(x, mu, sigma);
+      const px = mapX(x);
+      const py = mapY(y);
+
+      if (i === 0) {
+        path += `M ${px} ${py}`;
+      } else {
+        path += ` L ${px} ${py}`;
+      }
+    }
+
+    // 画正态分布曲线
+    const curve = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    curve.setAttribute("d", path);
+    curve.setAttribute("fill", "none");
+    curve.setAttribute("stroke", "#2f80ed");
+    curve.setAttribute("stroke-width", "3");
+    chart.appendChild(curve);
+
+    // 画均值线 μ
+    const muLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    muLine.setAttribute("x1", mapX(mu));
+    muLine.setAttribute("x2", mapX(mu));
+    muLine.setAttribute("y1", 30);
+    muLine.setAttribute("y2", height - padding);
+    muLine.setAttribute("stroke", "#999");
+    muLine.setAttribute("stroke-dasharray", "5,5");
+    chart.appendChild(muLine);
+
+    // 画当前 x 的位置线
+    const xLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    xLine.setAttribute("x1", mapX(xValue));
+    xLine.setAttribute("x2", mapX(xValue));
+    xLine.setAttribute("y1", 30);
+    xLine.setAttribute("y2", height - padding);
+    xLine.setAttribute("stroke", "#ff4d4f");
+    xLine.setAttribute("stroke-width", "2");
+    chart.appendChild(xLine);
+
+    // 画底部横轴
+    const axis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    axis.setAttribute("x1", padding);
+    axis.setAttribute("x2", width - padding);
+    axis.setAttribute("y1", height - padding);
+    axis.setAttribute("y2", height - padding);
+    axis.setAttribute("stroke", "#333");
+    chart.appendChild(axis);
+
+    // 添加说明文字
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", 20);
+    text.setAttribute("y", 25);
+    text.setAttribute("font-size", "14");
+    text.textContent = "灰线 = 均值 μ，红线 = 当前 x";
+    chart.appendChild(text);
+  }
+
+  // 监听滑块变化
+  xSlider.addEventListener("input", update);
+  muSlider.addEventListener("input", update);
+  sigmaSlider.addEventListener("input", update);
+
+  // 页面加载时先执行一次
+  update();
+</script>
+
+</body>
+</html>
